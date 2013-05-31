@@ -51,7 +51,7 @@ Item {
     }
 
     function sendToWorkerScript(data) {
-        workerScript.sendMessage({data: data, reloadType: reloadType, model: tweetView.model})
+        workerScript.sendMessage({ type: reloadType, data: data, model: tweetView.model })
     }
 
     function positionAtTop() {
@@ -60,7 +60,7 @@ Item {
 
     onRefresh: loadingRect.visible = true
 
-    AbstractListView {
+    PullDownListView {
         id: tweetView
         anchors.fill: parent
         model: ListModel {}
@@ -73,7 +73,7 @@ Item {
             enabled: !loadingRect.visible
             onClicked: refresh("older")
         }
-        onPullDownRefresh: refresh("newer")
+        onPulledDown: refresh("newer")
     }
 
     Text {

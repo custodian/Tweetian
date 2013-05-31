@@ -29,14 +29,13 @@ Page {
     property QtObject userStream: null
 
     property string screenName: ""
-    property WorkerScript parser: dMConversationParser
 
-    Component.onCompleted: parser.insert(mainPage.directMsg.fullModel.count)
+    Component.onCompleted: internal.insertDMs(mainPage.directMsg.fullModel.count)
 
     tools: ToolBarLayout {
         ToolIcon {
-            id: backButton
             platformIconId: "toolbar-back" + (enabled ? "" : "-dimmed")
+            enabled: !internal.workerScriptRunning
             onClicked: pageStack.pop()
         }
         ToolIcon {
@@ -45,18 +44,18 @@ Page {
         }
         ToolIcon {
             platformIconId: "toolbar-refresh" + (enabled ? "" : "-dimmed")
-            enabled: userStream.status === 0
+            enabled: !userStream.connected
             onClicked: mainPage.directMsg.refresh("newer")
         }
     }
 
-    AbstractListView {
+    PullDownListView {
         id: dMConversationView
         anchors { top: header.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
         model: ListModel {}
-        header: PullToRefreshHeader { visible: userStream.status === 0 }
+        header: PullToRefreshHeader { visible: !userStream.connected }
         delegate: DirectMsgDelegate {}
-        onPullDownRefresh: if (userStream.status === 0) mainPage.directMsg.refresh("newer")
+        onPulledDown: if (!userStream.connected) mainPage.directMsg.refresh("newer")
     }
 
     ScrollDecorator { flickableItem: dMConversationView }
@@ -65,53 +64,35 @@ Page {
         id: header
         headerText: qsTr("DM: %1").arg("@" + screenName)
         headerIcon: "../Image/inbox.svg"
-        busy: mainPage.directMsg.busy
+        busy: internal.workerScriptRunning || mainPage.directMsg.busy
         onClicked: dMConversationView.positionViewAtBeginning()
     }
 
     WorkerScript {
-        id: dMConversationParser
+        id: dmConversationParser
         source: "../WorkerScript/DMConversationParser.js"
-        onMessage: backButton.enabled = true
-
-        function insert(count) {
-            if (count > 0) {
-                backButton.enabled = false
-                var msg = {
-                    type: "insert",
-                    fullModel: mainPage.directMsg.fullModel,
-                    model: dMConversationView.model,
-                    screenName: screenName,
-                    count: count
-                }
-                sendMessage(msg)
-            }
-        }
-
-        function remove(tweetId) {
-            var msg = {
-                type: "remove",
-                model: dMConversationView.model,
-                tweetId: tweetId
-            }
-            sendMessage(msg)
-        }
+        onMessage: internal.workerScriptRunning = false
     }
 
     Connections {
         target: mainPage.directMsg
-        onDataParsed: if (type === "insert") parser.insert(count)
+        onDmParsed: {
+            internal.insertDMs(newDMCount);
+            mainPage.directMsg.setDMThreadReaded(screenName);
+        }
+        onDmRemoved: internal.removeDM(id)
     }
 
     QtObject {
         id: internal
 
+        property bool workerScriptRunning: false
         property Component __dmDialog: null
 
         function deleteDMOnSuccess(data) {
-            mainPage.directMsg.parser.remove(data.id_str)
-            parser.remove(data.id_str)
-            infoBanner.alert(qsTr("Direct message deleted successfully"))
+            removeDM(data.id_str)
+            mainPage.directMsg.removeDM(data.id_str)
+            infoBanner.showText(qsTr("Direct message deleted successfully"))
             header.busy = false
         }
 
@@ -122,20 +103,38 @@ Page {
 
         function createDMDialog(model) {
             var prop = {
-                tweetId: model.tweetId,
+                id: model.id,
                 screenName: (model.sentMsg ? settings.userScreenName : model.screenName),
-                dmText: model.tweetText
+                dmText: model.richText
             }
             if (!__dmDialog) __dmDialog = Qt.createComponent("DMDialog.qml")
             __dmDialog.createObject(dMThreadPage, prop)
         }
 
-        function createDeleteDMDialog(tweetId) {
+        function createDeleteDMDialog(id) {
             var message = qsTr("Do you want to delete this direct message?")
             dialog.createQueryDialog(qsTr("Delete Message"), "", message, function() {
-                Twitter.postDeleteDirectMsg(tweetId, deleteDMOnSuccess, deleteDMOnFailure)
+                Twitter.postDeleteDirectMsg(id, deleteDMOnSuccess, deleteDMOnFailure)
                 header.busy = true
             })
+        }
+
+        function insertDMs(count) {
+            var msg = {
+                type: "insert",
+                fullModel: mainPage.directMsg.fullModel,
+                model: dMConversationView.model,
+                screenName: screenName,
+                count: count
+            }
+            dmConversationParser.sendMessage(msg)
+            workerScriptRunning = true;
+        }
+
+        function removeDM(id) {
+            var msg = { type: "remove", model: dMConversationView.model, id: id }
+            dmConversationParser.sendMessage(msg)
+            workerScriptRunning = true;
         }
     }
 }

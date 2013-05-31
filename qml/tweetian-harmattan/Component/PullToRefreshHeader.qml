@@ -26,7 +26,7 @@ Item {
 
     Item {
         id: container
-        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.top; bottomMargin: constant.paddingXXLarge }
+        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.top; bottomMargin: constant.paddingXLarge }
         height: pullIcon.height
         width: pullIcon.width + textColumn.width + textColumn.anchors.leftMargin
         visible: root.ListView.view.__wasAtYBeginning && root.ListView.view.__initialContentY - root.ListView.view.contentY > 10
@@ -35,15 +35,15 @@ Item {
             id: pullIcon
             anchors.left: parent.left
             sourceSize { width: constant.graphicSizeSmall; height: constant.graphicSizeSmall }
-            rotation: visible && root.ListView.view.__initialContentY - root.ListView.view.contentY > 100 ? 270 : 90
-            source: settings.invertedTheme ? "image://theme/icon-m-toolbar-next" : "image://theme/icon-m-toolbar-next-white-selected"
+            rotation: root.ListView.view.__toBeRefresh ? 270 : 90
+            source: "image://theme/icon-m-toolbar-next" + (settings.invertedTheme ? "" : "-white-selected")
 
             Behavior on rotation { NumberAnimation { duration: 250 } }
         }
 
         Column {
             id: textColumn
-            anchors { verticalCenter: parent.verticalCenter; left: pullIcon.right; leftMargin: constant.paddingLarge }
+            anchors { verticalCenter: parent.verticalCenter; left: pullIcon.right; leftMargin: constant.paddingMedium }
             width: Math.max(pullText.width, lastUpdateText.width)
             height: childrenRect.height
 
@@ -51,8 +51,7 @@ Item {
                 id: pullText
                 font.pixelSize: constant.fontSizeMedium
                 color: constant.colorLight
-                text: visible && root.ListView.view.__initialContentY - root.ListView.view.contentY > 100 ?
-                          qsTr("Release to refresh") : qsTr("Pull down to refresh")
+                text: root.ListView.view.__toBeRefresh ? qsTr("Release to refresh") : qsTr("Pull down to refresh")
             }
 
             Text {

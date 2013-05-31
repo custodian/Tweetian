@@ -34,12 +34,11 @@ Page {
         }
     }
 
-    AbstractListView {
+    ListView {
         id: userCategoryView
         anchors { top: header.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         delegate: userCategoryDelegate
         model: ListModel {}
-        onPullDownRefresh: script.refresh()
     }
 
     ScrollDecorator { flickableItem: userCategoryView }
@@ -79,16 +78,16 @@ Page {
         ListItem {
             id: userCategoryItem
             width: ListView.view.width
-            height: categoryText.height + categoryText.anchors.topMargin * 2
+            height: Math.max(categoryText.height + 2 * constant.paddingLarge, 80)
             subItemIndicator: true
             marginLineVisible: false
 
             Text {
                 id: categoryText
                 anchors {
-                    top: userCategoryItem.top; topMargin: constant.paddingXXLarge
-                    left: userCategoryItem.left; leftMargin: constant.paddingMedium
-                    right: countBubble.left
+                    verticalCenter: parent.verticalCenter
+                    left: userCategoryItem.left; leftMargin: constant.paddingLarge
+                    right: countBubble.left; rightMargin: constant.paddingMedium
                 }
                 elide: Text.ElideRight
                 text: model.name

@@ -25,18 +25,18 @@ Item {
 
     property bool marginLineVisible: true
     property bool subItemIndicator: false
-    property bool imageAnchorAtCenter: false
     property url imageSource: ""
 
     // READ-ONLY
     property Item imageItem: imageLoader
     property int listItemRightMargin: subItemIndicator ? iconLoader.width + iconLoader.anchors.rightMargin : 0
 
+    signal pressed
     signal clicked
     signal pressAndHold
 
-    implicitWidth: parent.width
-    implicitHeight: imageAnchorAtCenter ? 0 : imageLoader.height + 2 * imageLoader.anchors.margins
+    implicitWidth: parent ? parent.width : 0
+    implicitHeight: imageSource ? imageLoader.height + 2 * imageLoader.anchors.margins : 0
 
     Image {
         id: background
@@ -44,6 +44,14 @@ Item {
         visible: mouseArea.pressed
         source: settings.invertedTheme ? "image://theme/meegotouch-panel-background-pressed"
                                        : "image://theme/meegotouch-panel-inverted-background-pressed"
+    }
+
+    Rectangle {
+        id: bottomLine
+        height: 1
+        anchors { left: root.left; right: root.right; bottom: parent.bottom }
+        color: constant.colorDisabled
+        visible: root.marginLineVisible
     }
 
     Loader {
@@ -68,10 +76,9 @@ Item {
     Loader {
         id: imageLoader
         anchors {
-            top: imageAnchorAtCenter ? undefined : parent.top
+            verticalCenter: parent.verticalCenter
             left: parent.left
-            verticalCenter: imageAnchorAtCenter ? parent.verticalCenter : undefined
-            margins: constant.paddingMedium
+            margins: constant.paddingLarge
         }
         sourceComponent: imageSource ? imageComponent : undefined
     }
@@ -94,17 +101,10 @@ Item {
         }
     }
 
-    Rectangle {
-        id: bottomLine
-        height: 1
-        anchors { left: root.left; right: root.right; bottom: parent.bottom }
-        color: constant.colorDisabled
-        visible: root.marginLineVisible
-    }
-
     MouseArea {
         id: mouseArea
         anchors.fill: parent
+        onPressed: root.pressed()
         onClicked: root.clicked()
         onPressAndHold: root.pressAndHold()
     }
@@ -115,17 +115,5 @@ Item {
         duration: 250
         easing.type: Easing.OutBack
         from: 0.25; to: 1
-    }
-
-    ListView.onRemove: SequentialAnimation {
-        PropertyAction { target: root; property: "ListView.delayRemove"; value: true }
-        NumberAnimation {
-            target: root
-            property: "scale"
-            duration: 250
-            easing.type: Easing.InBack
-            from: 1; to: 0.25
-        }
-        PropertyAction { target: root; property: "ListView.delayRemove"; value: false }
     }
 }

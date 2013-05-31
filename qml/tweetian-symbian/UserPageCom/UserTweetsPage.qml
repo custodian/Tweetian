@@ -25,20 +25,20 @@ AbstractUserPage {
     id: userTweetsPage
 
     headerText: qsTr("Tweets")
-    headerNumber: userInfoData.statusesCount
+    headerNumber: user.tweetsCount
     emptyText: qsTr("No tweet")
-    loadMoreButtonVisible: listView.count > 0 && listView.count < userInfoData.statusesCount
+    loadMoreButtonVisible: listView.count > 0 && listView.count < user.tweetsCount
     delegate: TweetDelegate {}
 
     onReload: {
         var maxId = ""
         if (reloadType === "all") listView.model.clear()
-        else maxId = listView.model.get(listView.count - 1).tweetId
+        else maxId = listView.model.get(listView.count - 1).id
 
-        Twitter.getUserTweets(userInfoData.screenName, maxId,
+        Twitter.getUserTweets(user.screenName, maxId,
         function(data) {
             backButtonEnabled = false
-            userTweetsParser.sendMessage({'model': listView.model, 'data': data, 'reloadType': reloadType})
+            userTweetsParser.sendMessage({ type: reloadType, model: listView.model, data: data })
         },
         function(status, statusText) {
             infoBanner.showHttpError(status, statusText)
