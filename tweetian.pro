@@ -79,7 +79,9 @@ symbian{
 OTHER_FILES += qtc_packaging/debian_harmattan/* \
     i18n/tweetian_*.ts \
     tweetian_harmattan.desktop \
-    README.md
+    tweetian.desktop \
+    README.md \
+    qtc_packaging/debian_fremantle/*
 
 # Please do not modify the following two lines. Required for deployment.
 include(qmlapplicationviewer/qmlapplicationviewer.pri)
