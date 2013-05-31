@@ -20,24 +20,24 @@ function pocketSuccessCallback(username, password) {
     settings.pocketUsername = username
     settings.pocketPassword = password
     loadingRect.visible = false
-    infoBanner.alert(qsTr("Signed in to Pocket successfully"))
+    infoBanner.showText(qsTr("Signed in to Pocket successfully"))
 }
 
 function pocketFailureCallback(errorCode) {
     loadingRect.visible = false
-    infoBanner.alert(qsTr("Error signing in to Pocket (%1)").arg(errorCode))
+    infoBanner.showText(qsTr("Error signing in to Pocket (%1)").arg(errorCode))
 }
 
 function instapaperSuccessCallback(oauthToken, oauthTokenSecret) {
     settings.instapaperToken = oauthToken
     settings.instapaperTokenSecret = oauthTokenSecret
     loadingRect.visible = false
-    infoBanner.alert(qsTr("Signed in to Instapaper successfully"))
+    infoBanner.showText(qsTr("Signed in to Instapaper successfully"))
 }
 
 function instapaperFailureCallback(errorCode) {
     loadingRect.visible = false
-    infoBanner.alert(qsTr("Error signing in to Instapaper (%1)").arg(errorCode))
+    infoBanner.showText(qsTr("Error signing in to Instapaper (%1)").arg(errorCode))
 }
 
 var __signInDialog = null
@@ -65,11 +65,11 @@ function createTwitterSignOutDialog() {
     var message = qsTr("Do you want to sign out from your Twitter account? All other accounts will also automatically sign out. All settings will be reset.")
     dialog.createQueryDialog(qsTr("Twitter Sign Out"), "", message, function() {
         Database.clearTable("Timeline")
-        mainPage.timeline.parseData("all", [])
+        mainPage.timeline.removeAllTweet();
         Database.clearTable("Mentions")
-        mainPage.mentions.parseData("all", [])
-        Database.clearTable("DirectMsg")
-        mainPage.directMsg.parser.clearAndInsert([],[])
+        mainPage.mentions.removeAllTweet();
+        Database.clearTable("DM")
+        mainPage.directMsg.removeAllDM()
         Database.clearTable("ScreenNames")
         settings.resetAll()
         cache.clearAll()
@@ -82,7 +82,7 @@ function createPocketSignOutDialog() {
     dialog.createQueryDialog(qsTr("Pocket Sign Out"), "", message, function() {
         settings.pocketUsername = ""
         settings.pocketPassword = ""
-        infoBanner.alert(qsTr("Signed out from your Pocket account successfully"))
+        infoBanner.showText(qsTr("Signed out from your Pocket account successfully"))
     })
 }
 
@@ -91,6 +91,6 @@ function createInstapaperSignOutDialog() {
     dialog.createQueryDialog(qsTr("Instapaper Sign Out"), "", message, function() {
         settings.instapaperToken = ""
         settings.instapaperTokenSecret = ""
-        infoBanner.alert(qsTr("Signed out from your Instapaper account successfully"))
+        infoBanner.showText(qsTr("Signed out from your Instapaper account successfully"))
     })
 }

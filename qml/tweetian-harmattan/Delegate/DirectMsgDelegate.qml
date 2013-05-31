@@ -21,58 +21,48 @@ import com.nokia.meego 1.0
 
 AbstractDelegate {
     id: root
-    height: Math.max(textColumn.height, profileImage.height) + 2 * constant.paddingMedium
-    imageSource: sentMsg ? settings.userProfileImage : profileImageUrl
+    imageSource: model.isReceiveDM ? model.profileImageUrl : settings.userProfileImage
 
-    Column {
-        id: textColumn
-        anchors {
-            top: parent.top
-            left: profileImage.right; leftMargin: constant.paddingSmall
-            right: parent.right
-            margins: constant.paddingMedium
-        }
-        height: childrenRect.height
-
-        Item {
-            anchors { left: parent.left; right: parent.right }
-            height: userNameText.height
-
-            Text {
-                id: userNameText
-                anchors.left: parent.left
-                width: Math.min(implicitWidth, parent.width)
-                font.pixelSize: settings.largeFontSize ? constant.fontSizeMedium : constant.fontSizeSmall
-                font.bold: true
-                color: highlighted ? constant.colorHighlighted : constant.colorLight
-                elide: Text.ElideRight
-                text: sentMsg ? settings.userFullName : userName
-            }
-
-            Text {
-                anchors { left: userNameText.right; leftMargin: constant.paddingMedium; right: parent.right }
-                font.pixelSize: settings.largeFontSize ? constant.fontSizeMedium : constant.fontSizeSmall
-                color: highlighted ? constant.colorHighlighted : constant.colorMid
-                elide: Text.ElideRight
-                text: "@" + (sentMsg ? settings.userScreenName : screenName)
-            }
-        }
+    Item {
+        anchors { left: parent.left; right: parent.right }
+        height: userNameText.height
 
         Text {
-            anchors { left: parent.left; right: parent.right }
+            id: userNameText
+            anchors.left: parent.left
+            width: Math.min(implicitWidth, parent.width)
             font.pixelSize: settings.largeFontSize ? constant.fontSizeMedium : constant.fontSizeSmall
-            wrapMode: Text.Wrap
+            font.bold: true
             color: highlighted ? constant.colorHighlighted : constant.colorLight
-            text: tweetText
+            elide: Text.ElideRight
+            text: model.isReceiveDM ? model.name : settings.userFullName
         }
 
         Text {
-            anchors { left: parent.left; right: parent.right }
-            horizontalAlignment: Text.AlignRight
-            font.pixelSize: settings.largeFontSize ? constant.fontSizeSmall : constant.fontSizeXSmall
+            anchors { left: userNameText.right; leftMargin: constant.paddingSmall; right: parent.right }
+            font.pixelSize: settings.largeFontSize ? constant.fontSizeMedium : constant.fontSizeSmall
             color: highlighted ? constant.colorHighlighted : constant.colorMid
-            text: timeDiff
+            elide: Text.ElideRight
+            text: "@" + (model.isReceiveDM ? model.screenName : settings.userScreenName)
         }
+    }
+
+    Text {
+        anchors { left: parent.left; right: parent.right }
+        font.pixelSize: settings.largeFontSize ? constant.fontSizeMedium : constant.fontSizeSmall
+        wrapMode: Text.Wrap
+        color: highlighted ? constant.colorHighlighted : constant.colorLight
+        textFormat: Text.RichText
+        text: model.richText
+    }
+
+    Text {
+        anchors { left: parent.left; right: parent.right }
+        horizontalAlignment: Text.AlignRight
+        font.pixelSize: settings.largeFontSize ? constant.fontSizeSmall : constant.fontSizeXSmall
+        color: highlighted ? constant.colorHighlighted : constant.colorMid
+        elide: Text.ElideRight
+        text: timeDiff
     }
 
     onClicked: internal.createDMDialog(model)

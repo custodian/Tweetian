@@ -24,8 +24,6 @@ import "SettingsPageCom"
 Page {
     id: advSearchPage
 
-    property string searchQuery: ""
-
     function __contructQuery() {
         var query = ""
 
@@ -73,7 +71,7 @@ Page {
 
             ToolButton {
                 text: qsTr("Search")
-                onClicked: pageStack.push(Qt.resolvedUrl("SearchPage.qml"), {searchName: __contructQuery()})
+                onClicked: pageStack.push(Qt.resolvedUrl("SearchPage.qml"), {searchString: __contructQuery()})
             }
             ToolButton {
                 text: qsTr("Cancel")
@@ -100,7 +98,6 @@ Page {
             SettingTextField {
                 id: allOfTheseWordsField
                 settingText: qsTr("All of these words")
-                textFieldText: searchQuery
                 validator: RegExpValidator { regExp: /(^$|^\S$|^\S.*\S$)/ }
                 placeHolderText: qsTr("eg. %1").arg("Tweetian Symbian Harmattan")
             }
@@ -133,7 +130,11 @@ Page {
                 Column {
                     id: textColumn
                     height: childrenRect.height
-                    anchors { left: parent.left; right: parent.right; top: parent.top; margins: constant.paddingLarge }
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                        left: parent.left; right: parent.right
+                        margins: constant.paddingLarge
+                    }
 
                     Text {
                         text: qsTr("Language")
@@ -150,8 +151,8 @@ Page {
 
                 Image {
                     anchors {
-                        right: parent.right; rightMargin: constant.paddingMedium
                         verticalCenter: parent.verticalCenter
+                        right: parent.right; rightMargin: constant.paddingMedium
                     }
                     sourceSize { width: 40; height: 40 }
                     source: settings.invertedTheme ? "Image/choice_list_indicator_inverse.svg"
@@ -211,7 +212,7 @@ Page {
 
             SettingSwitch {
                 id: positiveAttitudeSwitch
-                text: qsTr("Position attitude :)")
+                text: qsTr("Positive attitude :)")
             }
 
             SettingSwitch {

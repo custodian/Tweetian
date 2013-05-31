@@ -56,10 +56,11 @@ Page {
         }
     }
 
-    AbstractListView {
+    PullDownListView {
         id: searchListView
         property bool stayAtCurrentPosition: internal.reloadType === "newer"
         anchors { top: header.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
+        enabled: !header.busy || count > 0
         footer: LoadMoreButton {
             visible: searchListView.count > 0
             enabled: !header.busy
@@ -67,7 +68,7 @@ Page {
         }
         delegate: TweetDelegate {}
         model: ListModel {}
-        onPullDownRefresh: internal.refresh("newer")
+        onPulledDown: internal.refresh("newer")
         onAtYBeginningChanged: if (atYBeginning) header.countBubbleValue = 0
         onContentYChanged: refreshUnreadCountTimer.running = true
 
@@ -92,7 +93,7 @@ Page {
 
     PageHeader {
         id: header
-        headerIcon: "image://theme/icon-m-common-location-inverse"
+        headerIcon: "image://theme/icon-s-location-picker-inverse"
         headerText: positionSource.active ? qsTr("Getting location...") : qsTr("Nearby Tweets")
         onClicked: searchListView.positionViewAtBeginning()
     }
@@ -135,13 +136,15 @@ Page {
         property string reloadType: "all"
 
         function refresh(type) {
-            var sinceId = "", maxId = ""
-            if (searchListView.count > 0) {
-                if (type === "newer") sinceId = searchListView.model.get(0).tweetId
-                else if (type === "older") maxId =  searchListView.model.get(searchListView.count - 1).tweetId
-                else if (type === "all") searchListView.model.clear()
+            if (searchListView.count <= 0)
+                type = "all";
+            var sinceId = "", maxId = "";
+            switch (type) {
+            case "newer": sinceId = searchListView.model.get(0).id; break;
+            case "older": maxId =  searchListView.model.get(searchListView.count - 1).id; break;
+            case "all": searchListView.model.clear(); break;
+            default: throw new Error("Invalid type");
             }
-            else type = "all"
             internal.reloadType = type
             Twitter.getNearbyTweets(latitude, longitude, sinceId, Calculate.minusOne(maxId), onSuccess, onFailure)
             header.busy = true
@@ -150,7 +153,7 @@ Page {
         function onSuccess(data) {
             if (reloadType != "older") searchListView.lastUpdate = new Date().toString()
             backButton.enabled = false
-            searchParser.sendMessage({'model': searchListView.model, 'data': data, 'reloadType': reloadType})
+            searchParser.sendMessage({ type: reloadType, model: searchListView.model, data: data})
         }
 
         function onFailure(status, statusText) {

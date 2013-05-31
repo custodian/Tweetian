@@ -26,7 +26,6 @@ QtObject {
 
     // TODO: Use QSettings but some of the values like oauthToken & pocketPassword can not store as plain text
     function loadSettings() {
-        Database.initializeSettings()
         var results = Database.getAllSettings()
         for (var s in results) {
             if (settings.hasOwnProperty(s)) {
@@ -34,9 +33,6 @@ QtObject {
             }
         }
         theme.inverted = !invertedTheme
-        Database.initializeTweetsTable("Timeline")
-        Database.initializeTweetsTable("Mentions")
-        Database.initializeDirectMsg()
         settingsLoaded()
     }
 
@@ -49,15 +45,13 @@ QtObject {
         trendsLocationWoeid = "1"
         imageUploadService = 0
         invertedTheme = false
-        hashtagsInReply = true
         enableTwitLonger = false
         largeFontSize = false
+        translateLangName = "English"
+        translateLangCode = "en"
         enableStreaming = false
-        timelineRefreshFreq = 0
-        mentionsRefreshFreq = 0
-        directMsgRefreshFreq = 0
-        mentionNotification = true
-        messageNotification = true
+        autoRefreshInterval = 0
+        enableNotification = true
         pocketUsername = ""
         pocketPassword = ""
         instapaperToken = ""
@@ -87,26 +81,22 @@ QtObject {
         theme.inverted = !invertedTheme
         Database.setSetting({"invertedTheme": invertedTheme.toString()})
     }
-    property bool hashtagsInReply: true
-    onHashtagsInReplyChanged: Database.setSetting({"hashtagsInReply": hashtagsInReply.toString()})
     property bool enableTwitLonger: false
     onEnableTwitLongerChanged: Database.setSetting({"enableTwitLonger": enableTwitLonger.toString()})
     property bool largeFontSize: false
     onLargeFontSizeChanged: Database.setSetting({"largeFontSize": largeFontSize.toString()})
 
+    property string translateLangName: "English"
+    onTranslateLangNameChanged: Database.setSetting({"translateLangName": translateLangName})
+    property string translateLangCode: "en"
+    onTranslateLangCodeChanged: Database.setSetting({"translateLangCode": translateLangCode})
+
     property bool enableStreaming: false
     onEnableStreamingChanged: Database.setSetting({"enableStreaming": enableStreaming.toString()})
-    property int timelineRefreshFreq: 0
-    onTimelineRefreshFreqChanged: Database.setSetting({"timelineRefreshFreq": timelineRefreshFreq.toString()})
-    property int mentionsRefreshFreq: 0
-    onMentionsRefreshFreqChanged: Database.setSetting({"mentionsRefreshFreq": mentionsRefreshFreq.toString()})
-    property int directMsgRefreshFreq: 0
-    onDirectMsgRefreshFreqChanged: Database.setSetting({"directMsgRefreshFreq": directMsgRefreshFreq.toString()})
-
-    property bool mentionNotification: true
-    onMentionNotificationChanged: Database.setSetting({"mentionNotification": mentionNotification.toString()})
-    property bool messageNotification: true
-    onMessageNotificationChanged: Database.setSetting({"messageNotification": messageNotification.toString()})
+    property int autoRefreshInterval: 0
+    onAutoRefreshIntervalChanged: Database.setSetting({"autoRefreshInterval": autoRefreshInterval.toString()})
+    property bool enableNotification: true
+    onEnableNotificationChanged: Database.setSetting({"enableNotification": enableNotification.toString()})
 
     property string pocketUsername: ""
     onPocketUsernameChanged: Database.setSetting({"pocketUsername": pocketUsername})

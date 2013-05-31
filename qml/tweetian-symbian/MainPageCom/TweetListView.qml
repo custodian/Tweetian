@@ -40,20 +40,27 @@ Item {
                           mainView.currentIndex === (type === "Timeline" ? 0 : 1)
 
     function initialize() {
-        reloadType = "database"
-        var tweets = Database.getTweets(type)
-        parseData(reloadType, tweets)
+        var msg = {
+            type: "database",
+            data: (type === "Timeline" ? Database.getTimeline() : Database.getMentions()),
+            model: tweetView.model
+        }
+        tweetParser.sendMessage(msg)
         busy = true
+        if (type === "Timeline") tweetView.lastUpdate = Database.getSetting("timelineLastUpdate")
+        else tweetView.lastUpdate = Database.getSetting("mentionsLastUpdate")
     }
 
     function refresh(type) {
-        var sinceId = "", maxId = ""
-        if (tweetView.count > 0) {
-            if (type === "newer") sinceId = tweetView.model.get(0).tweetId
-            else if (type === "older") maxId = tweetView.model.get(tweetView.count - 1).tweetId
-            else if (type === "all") tweetView.model.clear()
+        if (tweetView.count <= 0)
+            type = "all";
+        var sinceId = "", maxId = "";
+        switch (type) {
+        case "newer": sinceId = tweetView.model.get(0).id; break;
+        case "older": maxId = tweetView.model.get(tweetView.count - 1).id; break;
+        case "all": tweetView.model.clear(); break;
+        default: throw new Error("Invalid type");
         }
-        else type = "all"
         reloadType = type
         if (root.type == "Timeline") Twitter.getHomeTimeline(sinceId, Calculate.minusOne(maxId), internal.successCallback, internal.failureCallback)
         else Twitter.getMentions(sinceId, Calculate.minusOne(maxId), internal.successCallback, internal.failureCallback)
@@ -64,22 +71,49 @@ Item {
         tweetView.positionViewAtBeginning()
     }
 
-    function parseData(method, data, updateLastRefreshTime) {
+    function prependNewTweets(tweetsJson) {
         var msg = {
+            type: "newer",
+            data: tweetsJson,
             model: tweetView.model,
-            data: data,
-            reloadType: method,
             muteString: (type === "Timeline" ? settings.muteString : "")
         }
         tweetParser.sendMessage(msg)
-        if (updateLastRefreshTime) tweetView.lastUpdate = new Date().toString()
+        tweetView.lastUpdate = new Date().toString()
     }
 
-    AbstractListView {
+    function favouriteTweet(id) {
+        var msg = {
+            type: "favourite",
+            id: id,
+            model: tweetView.model
+        }
+        tweetParser.sendMessage(msg)
+    }
+
+    function removeTweet(id) {
+        var msg = {
+            type: "remove",
+            id: id,
+            model: tweetView.model
+        }
+        tweetParser.sendMessage(msg)
+    }
+
+    function removeAllTweet() {
+        var msg = {
+            type: "all",
+            data: [],
+            model: tweetView.model
+        }
+        tweetParser.sendMessage(msg)
+    }
+
+    PullDownListView {
         id: tweetView
 
-        property bool stayAtCurrentPosition: (userStream.status === 2 && !active) ||
-                                             (userStream.status !== 2 && reloadType === "newer")
+        property bool stayAtCurrentPosition: (userStream.connected && !active) ||
+                                             (!userStream.connected && reloadType === "newer")
 
         anchors.fill: parent
         model: ListModel {}
@@ -90,7 +124,7 @@ Item {
             enabled: !busy
             onClicked: refresh("older")
         }
-        onPullDownRefresh: if (userStream.status === 0) refresh("newer")
+        onPulledDown: if (!userStream.connected) refresh("newer")
         onAtYBeginningChanged: if (atYBeginning) root.unreadCount = 0
         onContentYChanged: refreshUnreadCountTimer.running = true
 
@@ -107,24 +141,6 @@ Item {
 
     ScrollDecorator { platformInverted: settings.invertedTheme; flickableItem: tweetView }
 
-    QtObject {
-        id: internal
-
-        function successCallback(data) {
-            networkMonitor.setToOnline()
-            if (reloadType == "newer" || reloadType == "all") {
-                parseData(reloadType, data, true)
-                if (autoRefreshTimer.running) autoRefreshTimer.restart()
-            }
-            else parseData(reloadType, data)
-        }
-
-        function failureCallback(status, statusText) {
-            infoBanner.showHttpError(status, statusText)
-            busy = false
-        }
-    }
-
     // Timer used for refresh the timestamp of every tweet every minute. triggeredOnStart is set to true
     // so that the timestamp is refreshed when the app is switch from background to foreground.
     Timer {
@@ -132,13 +148,12 @@ Item {
         repeat: true
         running: symbian.foreground
         triggeredOnStart: true
-        onTriggered: if (tweetView.count > 0) parseData("time")
+        onTriggered: internal.refreshTimeDiff()
     }
 
     Timer {
         id: autoRefreshTimer
-        interval: type == "Timeline" ? settings.timelineRefreshFreq * 60000
-                                     : settings.mentionsRefreshFreq * 60000
+        interval: settings.autoRefreshInterval * 60000
         running: networkMonitor.online && !settings.enableStreaming
         repeat: true
         onTriggered: refresh("newer")
@@ -147,38 +162,73 @@ Item {
     WorkerScript {
         id: tweetParser
         source: "../WorkerScript/TweetsParser.js"
-        onMessage: {
-            if (messageObject.type === "newer") {
-                if (messageObject.count > 0) {
-                    if (tweetView.stayAtCurrentPosition || tweetView.indexAt(0, tweetView.contentY) > 0)
-                        unreadCount += messageObject.count
-                    if (type === "Mentions" && symbian.foreground && mainPage.status !== PageStatus.Active)
-                        infoBanner.alert(qsTr("%n new mention(s)", "", unreadCount))
-                }
-                if (messageObject.screenNames.length > 0)
-                    cache.screenNames = Database.storeScreenNames(messageObject.screenNames)
-                busy = false
+        onMessage: internal.onParseComplete(messageObject)
+    }
+
+    QtObject {
+        id: internal
+
+        function refreshTimeDiff() {
+            if (tweetView.count <= 0) return;
+            var msg = { type: "time", model: tweetView.model }
+            tweetParser.sendMessage(msg)
+        }
+
+        function successCallback(data) {
+            networkMonitor.setToOnline()
+            var msg = {
+                type: reloadType,
+                data: data,
+                model: tweetView.model,
+                muteString: (type === "Timeline" ? settings.muteString : "")
             }
-            else if (messageObject.type === "all" || messageObject.type === "older") {
-                if (messageObject.screenNames.length > 0)
-                    cache.screenNames = Database.storeScreenNames(messageObject.screenNames)
-                busy = false
+            tweetParser.sendMessage(msg);
+            if (reloadType == "newer" || reloadType == "all") {
+                tweetView.lastUpdate = new Date().toString()
+                if (autoRefreshTimer.running) autoRefreshTimer.restart()
             }
-            else if (messageObject.type === "database") {
-                if (tweetView.count > 0) {
-                    if (type === "Timeline") tweetView.lastUpdate = Database.getSetting("timelineLastUpdate")
-                    else tweetView.lastUpdate = Database.getSetting("mentionsLastUpdate")
-                    refresh("newer")
-                }
-                else refresh("all")
+        }
+
+        function failureCallback(status, statusText) {
+            infoBanner.showHttpError(status, statusText)
+            busy = false
+        }
+
+        function onParseComplete(msg) {
+            switch (msg.type) {
+            case "newer":
+                __createNotification(msg.newTweetCount);
+                // fallthrough
+            case "all": case "older":
+                cache.storeScreenNames(msg.screenNames);
+                busy = false;
+                break;
+            case "database":
+                refresh("newer");
+                break;
             }
-            cache.pushToHashtags(messageObject.hashtags)
+            cache.storeHashtags(msg.hashtags)
+        }
+
+        function __createNotification(newTweetCount) {
+            if (newTweetCount <= 0) return;
+
+            if (tweetView.stayAtCurrentPosition || tweetView.indexAt(0, tweetView.contentY) > 0)
+                unreadCount += newTweetCount;
+
+            if (type === "Mentions" && symbian.foreground && mainPage.status !== PageStatus.Active)
+                infoBanner.showText(qsTr("%n new mention(s)", "", unreadCount));
         }
     }
 
     Component.onDestruction: {
-        if (type === "Timeline") Database.setSetting({"timelineLastUpdate": tweetView.lastUpdate})
-        else Database.setSetting({"mentionsLastUpdate": tweetView.lastUpdate})
-        Database.storeTweets(type, tweetView.model)
+        if (type === "Timeline") {
+            Database.setSetting({"timelineLastUpdate": tweetView.lastUpdate})
+            Database.storeTimeline(tweetView.model);
+        }
+        else {
+            Database.setSetting({"mentionsLastUpdate": tweetView.lastUpdate})
+            Database.storeMentions(tweetView.model);
+        }
     }
 }
