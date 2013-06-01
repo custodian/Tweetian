@@ -80,7 +80,7 @@ maemo5 {
 
     DEFINES += Q_OS_MAEMO
 
-    RESOURCES += qmlharmattan.qrc
+    RESOURCES += qml-harmattan.qrc
 
     HEADERS += src/harmattanutils.h
     SOURCES += src/harmattanutils.cpp

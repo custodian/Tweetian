@@ -1,3 +1,17 @@
+tweetian (1.8.1) stable; urgency=normal
+  * Mainly bug fix and minor improvements
+  * Move to Twitter API 1.1
+  * Show retweets and favourites count for each tweet
+  * Improve search UI
+  * Bugs fix
+  * Lot of backend improvement
+  * Support 14 languages including English
+  * Add support for display multiple images from tweet
+  * Add image preview for SkyDrive (sdrv.ms)
+  * Lot of backend optimazation and bugs fix
+
+ -- Dickson <dicksonleong8@gmail.com>  Wed, 27 Feb 2013 17:02:35 +0800
+
 tweetian (1.6.1) unstable; urgency=low
   * <Add change description here>
 

@@ -65,11 +65,11 @@ QtObject {
     // The provided Twitter OAuth cousumer key pair below are only for testing
     // The release version in Nokia Store have a different key pair
 
-    property string twitterConsumerKey: "0FB4Dd9xsgSHiGiCJ82L1g"
-    property string twitterConsumerSecret: "VgRBngFVKH9Rm2cG9OgJHACpHr6a2IvcKXxh49FvU"
+    property string twitterConsumerKey: "ZZHqsFkF3KGEh8fKOAeTg"
+    property string twitterConsumerSecret: "5iDJFGEEYWbvwJHJp8IYCSzSzxAjdWizskR0mdycdQ"
 
     // Needed for uploading image to TwitPic
-    property string twitpicAPIKey: ""
+    property string twitpicAPIKey: "7826a80f5969574d294f28268c0191e8"
 
     // Needed for uploading image to Moby.ly
     property string mobypictureAPIKey: ""
