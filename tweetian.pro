@@ -5,12 +5,26 @@ TARGET = tweetian
 VERSION = 1.6.1
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
+win32 {
+    # Define QMLJSDEBUGGER to allow debugging of QML in debug builds
+    # (This might significantly increase build time)
+    QMLJSDEBUGGER_PATH = C:\QtSDK\QtCreator\share\qtcreator\qml\qmljsdebugger
+    DEFINES += QMLJSDEBUGGER
+}
+
+
 # Qt Library
 QT += network
 
 # Qt Mobility Library
-CONFIG += mobility
-MOBILITY += feedback location gallery
+maemo5 {
+    CONFIG += mobility12 qdbus
+    MOBILITY += location
+} else {
+    CONFIG += mobility
+    MOBILITY += feedback location gallery
+}
+
 
 HEADERS += \
     src/qmlutils.h \
@@ -58,6 +72,23 @@ contains(MEEGO_EDITION,harmattan){
     SOURCES += src/tweetianif.cpp
 }
 
+maemo5 {
+    qml_harmattan.source = qml/tweetian-harmattan
+    qml_harmattan.target = qml
+
+    DEPLOYMENTFOLDERS += qml_harmattan
+
+    DEFINES += Q_OS_MAEMO
+
+    RESOURCES += qmlharmattan.qrc
+
+    HEADERS += src/harmattanutils.h
+    SOURCES += src/harmattanutils.cpp
+
+    HEADERS += src/tweetianif.h
+    SOURCES += src/tweetianif.cpp
+}
+
 symbian{
     TARGET.UID3 = 0x2005e90a
     TARGET.CAPABILITY += NetworkServices Location LocalServices ReadUserData WriteUserData
@@ -78,10 +109,15 @@ symbian{
 
 OTHER_FILES += qtc_packaging/debian_harmattan/* \
     i18n/tweetian_*.ts \
-    tweetian_harmattan.desktop \
     tweetian.desktop \
+    tweetian_harmattan.desktop \
     README.md \
-    qtc_packaging/debian_fremantle/*
+    qtc_packaging/debian_fremantle/rules \
+    qtc_packaging/debian_fremantle/README \
+    qtc_packaging/debian_fremantle/copyright \
+    qtc_packaging/debian_fremantle/control \
+    qtc_packaging/debian_fremantle/compat \
+    qtc_packaging/debian_fremantle/changelog
 
 # Please do not modify the following two lines. Required for deployment.
 include(qmlapplicationviewer/qmlapplicationviewer.pri)

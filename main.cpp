@@ -18,6 +18,7 @@
 
 #include <QtGui/QApplication>
 #include <QtDeclarative/QDeclarativeContext>
+#include <QtDeclarative/QDeclarativeEngine>
 #include <QtDeclarative/QDeclarativeView>
 #include <QtDeclarative/qdeclarative.h>
 #include <QtCore/QTranslator>
@@ -81,7 +82,15 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     splash->showMessage(QSplashScreen::tr("Loading..."), Qt::AlignHCenter | Qt::AlignBottom, Qt::white);
 #endif
 
-    QDeclarativeView view;
+    //QDeclarativeView view;
+    QmlApplicationViewer view;
+
+#if defined(Q_OS_MAEMO)
+    view.addImportPath(QString("/opt/qtm12/imports"));
+    view.engine()->addImportPath(QString("/opt/qtm12/imports"));
+    view.engine()->addPluginPath(QString("/opt/qtm12/plugins"));
+#endif
+
 
 #ifdef Q_OS_HARMATTAN
     new TweetianIf(app.data(), &view);
