@@ -23,7 +23,7 @@ ContextMenu {
     id: root
 
     property string screenName
-    property string tweetId
+    property string id
     property string dmText
 
     property bool __isClosing: false
@@ -35,12 +35,12 @@ ContextMenu {
             onClicked: {
                 // TODO: Remove html for links
                 QMLUtils.copyToClipboard("@" + screenName + ": " + dmText)
-                infoBanner.alert(qsTr("DM copied to clipboard"))
+                infoBanner.showText(qsTr("DM copied to clipboard"))
             }
         }
         MenuItem {
             text: qsTr("Delete")
-            onClicked: internal.createDeleteDMDialog(tweetId)
+            onClicked: internal.createDeleteDMDialog(id)
         }
         MenuItem {
             text: qsTr("%1 Profile").arg("<font color=\"LightSeaGreen\">@" + screenName + "</font>")

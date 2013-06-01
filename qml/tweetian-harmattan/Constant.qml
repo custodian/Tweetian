@@ -31,10 +31,9 @@ QtObject {
 
     // padding size
     property int paddingSmall: 4
-    property int paddingMedium: 6
-    property int paddingLarge: 8
-    property int paddingXLarge: 12
-    property int paddingXXLarge: 16
+    property int paddingMedium: 8
+    property int paddingLarge: 12
+    property int paddingXLarge: 16
 
     // font size
     property int fontSizeXSmall: 20
@@ -53,10 +52,9 @@ QtObject {
     property int thumbnailSize: 150
 
     // other
-    property int borderSizeMedium: 20
     property int headerHeight: inPortrait ? 65 : 55
 
-    property int charReservedPerMedia: 22
+    property int charReservedPerMedia: 23
     property url twitterBirdIcon: settings.invertedTheme ? "Image/twitter-bird-light.png" : "Image/twitter-bird-dark.png"
 
     property string userAgent: QMLUtils.userAgent()

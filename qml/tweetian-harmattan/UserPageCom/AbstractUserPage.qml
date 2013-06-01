@@ -32,7 +32,7 @@ Page {
     property bool backButtonEnabled: true
     property bool loadMoreButtonVisible: true
 
-    property QtObject userInfoData
+    property variant user
     property ListView listView: listView
 
     signal reload
@@ -48,7 +48,7 @@ Page {
         }
     }
 
-    AbstractListView {
+    PullDownListView {
         id: listView
         anchors { top: header.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         model: ListModel {}
@@ -60,7 +60,7 @@ Page {
                 reload()
             }
         }
-        onPullDownRefresh: {
+        onPulledDown: {
             reloadType = "all"
             reload()
         }
@@ -78,8 +78,8 @@ Page {
 
     PageHeader {
         id: header
-        headerIcon: userInfoData.profileImageUrl
-        headerText: "<b>@" + userInfoData.screenName + "</b>: " + root.headerText
+        headerIcon: user.profileImageUrl
+        headerText: "@" + user.screenName + ": " + root.headerText
         countBubbleVisible: true
         countBubbleValue: root.headerNumber
         onClicked: listView.positionViewAtBeginning()

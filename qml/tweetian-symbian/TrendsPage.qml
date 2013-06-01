@@ -26,7 +26,9 @@ Page {
 
     property bool savedSearchLoading: false
     property bool trendingLoading: false
+
     property ListModel trendsLocationModel: ListModel {}
+    property ListModel autoCompleterModel: ListModel {}
 
     Component.onCompleted: if (cache.trendsModel.count === 0) internal.refresh()
 
@@ -37,9 +39,9 @@ Page {
             onClicked: pageStack.pop()
         }
         ToolButtonWithTip {
-            iconSource: "toolbar-search"
-            toolTipText: qsTr("Search")
-            onClicked: internal.createSearchDialog()
+            iconSource: settings.invertedTheme ? "Image/location_mark_inverse.svg" : "Image/location_mark.svg"
+            toolTipText: qsTr("Nearby tweets")
+            onClicked: pageStack.push(Qt.resolvedUrl("NearbyTweetsPage.qml"))
         }
         ToolButtonWithTip {
             iconSource: "Image/people" + (settings.invertedTheme ? "_inverse.svg" : ".svg")
@@ -55,14 +57,13 @@ Page {
 
     Menu {
         id: menu
-
         platformInverted: settings.invertedTheme
 
         MenuLayout {
             MenuItem {
-                text: qsTr("Nearby Tweets")
+                text: qsTr("Advanced search")
                 platformInverted: menu.platformInverted
-                onClicked: pageStack.push(Qt.resolvedUrl("NearbyTweetsPage.qml"))
+                onClicked: pageStack.push(Qt.resolvedUrl("AdvSearchPage.qml"))
             }
             MenuItem {
                 text: qsTr("Change trends location")
@@ -78,12 +79,12 @@ Page {
         }
     }
 
-    AbstractListView {
+    PullDownListView {
         id: trendsPageListView
-        anchors { top: header.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
+        anchors { top: searchTextFieldContainer.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
         model: cache.trendsModel
         lastUpdate: cache.trendsLastUpdate
-        section.property: "type"
+        section.property: model == cache.trendsModel ? "type" : ""
         section.delegate: SectionHeader { text: section }
         delegate: ListItem {
             id: trendsListItem
@@ -92,26 +93,89 @@ Page {
 
             ListItemText {
                 id: titleText
-                anchors { top: parent.paddingItem.top; left: parent.paddingItem.left; right: parent.paddingItem.right }
+                anchors {
+                    verticalCenter: parent.verticalCenter
+                    left: parent.paddingItem.left; right: parent.paddingItem.right
+                }
+                platformInverted: parent.platformInverted
                 mode: trendsListItem.mode
                 role: "Title"
-                text: title
-                platformInverted: parent.platformInverted
+                text: model.title || model.completeWord
             }
 
             onClicked: {
-                var prop = { searchName: title, isSavedSearch: type === qsTr("Saved Searches"), savedSearchId: id }
-                pageStack.push(Qt.resolvedUrl("SearchPage.qml"), prop)
-            }
-            onPressAndHold: {
-                if (type === qsTr("Saved Searches"))
-                    savedSearchMenuComponent.createObject(trendsPage, { id: id, searchName: title })
+                if (trendsPageListView.model === cache.trendsModel) {
+                    var prop = {
+                        searchString: model.title,
+                        isSavedSearch: type === qsTr("Saved Searches"),
+                        savedSearchId: model.id
+                    }
+                    pageStack.push(Qt.resolvedUrl("SearchPage.qml"), prop)
+                }
+                else {
+                    if (model.completeWord.charAt(0) === "@")
+                        pageStack.push(Qt.resolvedUrl("UserPage.qml"), {screenName: model.completeWord.slice(1)})
+                    else pageStack.push(Qt.resolvedUrl("SearchPage.qml"), {searchString: model.completeWord})
+                    searchTextField.parent.focus = true // remove activeFocus on searchTextField
+                }
             }
         }
-        onPullDownRefresh: internal.refresh()
+        onPulledDown: if (model === cache.trendsModel) internal.refresh()
     }
 
     ScrollDecorator { platformInverted: settings.invertedTheme; flickableItem: trendsPageListView }
+
+    Item {
+        id: searchTextFieldContainer
+        anchors { top: header.bottom; left: parent.left; right: parent.right }
+        height: searchTextField.height + 2 * searchTextField.anchors.margins
+
+        BorderImage {
+            anchors.fill: parent
+            border { left: 20; top: 20; right: 20; bottom: 20 }
+            source: "image://theme/qtg_fr_pushbutton_segmented_c_normal" + (settings.invertedTheme ? "_inverse" : "")
+        }
+
+        TextField {
+            id: searchTextField
+            anchors { top: parent.top; left: parent.left; right: searchButton.left; margins: constant.paddingMedium }
+            platformInverted: settings.invertedTheme
+            // disable predictive text because there is no way to get pre-edit text in Symbian
+            inputMethodHints: Qt.ImhNoPredictiveText
+            placeholderText: qsTr("Search for tweets or users")
+            onActiveFocusChanged: {
+                if (activeFocus) trendsPageListView.model = autoCompleterModel
+                else trendsPageListView.model = cache.trendsModel
+            }
+            onTextChanged: internal.updateAutoCompleter()
+            Keys.onEnterPressed: {
+                event.accepted = true
+                searchTextField.parent.focus = true // remove activeFocus on searchTextField
+                pageStack.push(Qt.resolvedUrl("SearchPage.qml"), { searchString: searchTextField.text })
+            }
+        }
+
+        // When keyboard is closed, searchTextField still on activeFocus
+        // The following connection is to remove activeFocus on searchTextField when keyboard is closed
+        Connections {
+            target: inputContext
+            onVisibleChanged: if (!inputContext.visible) searchTextField.parent.focus = true
+        }
+
+        Button {
+            id: searchButton
+            anchors { top: parent.top; bottom: parent.bottom; right: parent.right; margins: constant.paddingMedium }
+            platformInverted: settings.invertedTheme
+            width: height
+            enabled: searchTextField.text
+            opacity: enabled ? 1 : 0.25
+            iconSource: "image://theme/toolbar-search" + (platformInverted ? "_inverse" : "")
+            onClicked: {
+                searchTextField.parent.focus = true // remove activeFocus on searchTextField
+                pageStack.push(Qt.resolvedUrl("SearchPage.qml"), { searchString: searchTextField.text })
+            }
+        }
+    }
 
     PageHeader {
         id: header
@@ -124,23 +188,32 @@ Page {
     QtObject {
         id: internal
 
-        property Component __searchDialog: null
         property Component __trendsLocationDialog: null
 
-        function removeSearchOnSuccess(data) {
-            for (var i=0; i<trendsPageListView.count; i++) {
-                if (trendsPageListView.model.get(i).title === data.name) {
-                    trendsPageListView.model.remove(i)
-                    break
-                }
-            }
-            infoBanner.alert(qsTr("The saved search %1 is removed successfully").arg("\""+data.name+"\""))
-            savedSearchLoading = false
+        function refresh() {
+            cache.trendsModel.clear()
+            Twitter.getSavedSearches(savedSearchOnSuccess, savedSearchOnFailure)
+            Twitter.getTrends(settings.trendsLocationWoeid, trendsOnSuccess, trendsOnFailure)
+            savedSearchLoading = true
+            trendingLoading = true
         }
 
-        function removeSearchOnFailure(status, statusText) {
-            infoBanner.showHttpError(status, statusText)
-            savedSearchLoading = false
+        function updateAutoCompleter() {
+            if (trendsPage.status !== PageStatus.Active || !searchTextField.activeFocus) return
+            autoCompleterModel.clear()
+            var fullText = searchTextField.text
+            if (!fullText) return
+            switch (fullText.charAt(0)) {
+            case "@": case "#": break;
+            default: fullText = "@" + fullText; break;
+            }
+            var msg = {
+                word: fullText,
+                model: autoCompleterModel,
+                screenNames: cache.screenNames,
+                hashtags: cache.hashtags
+            }
+            autoCompleterWorker.sendMessage(msg)
         }
 
         function trendsOnSuccess(data) {
@@ -150,19 +223,18 @@ Page {
                 var obj = {
                     "id": "",
                     "title": data[0].trends[i].name,
-                    "query":data[0].trends[i].query,
                     "type": qsTr("Trends (%1)").arg(data[0].locations[0].name)
                 }
-                trendsPageListView.model.append(obj)
+                cache.trendsModel.append(obj)
                 if (data[0].trends[i].name.indexOf('#') === 0) hashtagsArray.push(data[0].trends[i].name.substring(1))
             }
-            cache.pushToHashtags(hashtagsArray)
+            cache.storeHashtags(hashtagsArray);
             trendingLoading = false
         }
 
         function trendsOnFailure(status, statusText) {
             infoBanner.showHttpError(status, statusText)
-            trendsPageListView.model.append({"title": qsTr("Unable to retrieve trends"), "type": qsTr("Trends")})
+            cache.trendsModel.append({"title": qsTr("Unable to retrieve trends"), "type": qsTr("Trends")})
             trendingLoading = false
         }
 
@@ -171,17 +243,16 @@ Page {
                 var obj = {
                     "id": data[i].id,
                     "title": data[i].name,
-                    "query": data[i].query,
                     "type": qsTr("Saved Searches")
                 }
-                trendsPageListView.model.insert(i, obj)
+                cache.trendsModel.insert(i, obj)
             }
             savedSearchLoading = false
         }
 
         function savedSearchOnFailure(status, statusText) {
             infoBanner.showHttpError(status, statusText)
-            trendsPageListView.model.insert(0,{"title": qsTr("Unabled to retrieve saved search"), "type": qsTr("Saved Searches")})
+            cache.trendsModel.insert(0,{"title": qsTr("Unabled to retrieve saved search"), "type": qsTr("Saved Searches")})
             savedSearchLoading = false
         }
 
@@ -205,29 +276,6 @@ Page {
             loadingRect.visible = false
         }
 
-        function refresh() {
-            trendsPageListView.model.clear()
-            Twitter.getSavedSearches(savedSearchOnSuccess, savedSearchOnFailure)
-            Twitter.getTrends(settings.trendsLocationWoeid, trendsOnSuccess, trendsOnFailure)
-            savedSearchLoading = true
-            trendingLoading = true
-        }
-
-        function createRemoveSavedSearchDialog(id, searchName) {
-            var icon = settings.invertedTheme ? "image://theme/toolbar-delete_inverse"
-                                                 : "image://theme/toolbar-delete"
-            var message = qsTr("Do you want to remove the saved search %1?").arg("\""+searchName+"\"")
-            dialog.createQueryDialog(qsTr("Remove Saved Search"), icon, message, function() {
-                Twitter.postRemoveSavedSearch(id, removeSearchOnSuccess, removeSearchOnFailure)
-                savedSearchLoading = true
-            })
-        }
-
-        function createSearchDialog() {
-            if (!__searchDialog) __searchDialog = Qt.createComponent("Dialog/SearchDialog.qml")
-            __searchDialog.createObject(trendsPage)
-        }
-
         function createTrendsLocationDialog() {
             if (!__trendsLocationDialog) __trendsLocationDialog = Qt.createComponent("Dialog/TrendsLocationDialog.qml")
             var dialog = __trendsLocationDialog.createObject(trendsPage, { model: trendsLocationModel })
@@ -238,31 +286,5 @@ Page {
         }
     }
 
-    Component {
-        id: savedSearchMenuComponent
-
-        ContextMenu {
-            id: savedSearchMenu
-
-            property int id
-            property string searchName: ""
-            property bool __isClosing: false
-
-            platformInverted: settings.invertedThemes
-
-            MenuLayout {
-                MenuItemWithIcon {
-                    iconSource: platformInverted ? "image://theme/toolbar-delete_inverse" : "image://theme/toolbar-delete"
-                    text: qsTr("Remove saved search")
-                    onClicked: internal.createRemoveSavedSearchDialog(savedSearchMenu.id, savedSearchMenu.searchName)
-                }
-            }
-
-            Component.onCompleted: open()
-            onStatusChanged: {
-                if (status === DialogStatus.Closing) __isClosing = true
-                else if (status === DialogStatus.Closed && __isClosing) savedSearchMenu.destroy()
-            }
-        }
-    }
+    WorkerScript { id: autoCompleterWorker; source: "WorkerScript/AutoCompleter.js" }
 }

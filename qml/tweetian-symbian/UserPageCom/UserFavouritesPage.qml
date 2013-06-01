@@ -25,20 +25,20 @@ AbstractUserPage {
     id: userFavouritesPage
 
     headerText: qsTr("Favourites")
-    headerNumber: userInfoData.favouritesCount
+    headerNumber: user.favouritesCount
     emptyText: qsTr("No favourite")
-    loadMoreButtonVisible: listView.count > 0 && listView.count < userInfoData.favouritesCount
+    loadMoreButtonVisible: listView.count > 0 && listView.count < user.favouritesCount
     delegate: TweetDelegate {}
 
     onReload: {
         var maxId = ""
         if (reloadType === "all") listView.model.clear()
-        else maxId = listView.model.get(listView.count - 1).tweetId
+        else maxId = listView.model.get(listView.count - 1).id
 
-        Twitter.getUserFavourites(userInfoData.screenName, maxId,
+        Twitter.getUserFavourites(user.screenName, maxId,
         function(data) {
             backButtonEnabled = false
-            userFavouritesParser.sendMessage({'model': listView.model, 'data': data, 'reloadType': reloadType})
+            userFavouritesParser.sendMessage({ type: reloadType, model: listView.model, data: data })
         },
         function(status, statusText) {
             infoBanner.showHttpError(status, statusText)

@@ -37,14 +37,15 @@ PageStackWindow {
         id: infoBanner
         topMargin: showStatusBar ? 40 : 8
 
-        function alert(alertText) {
-            infoBanner.text = alertText
+        function showText(text) {
+            infoBanner.text = text
             infoBanner.show()
         }
 
         function showHttpError(errorCode, errorMessage) {
-            if (errorCode === 0) alert(qsTr("Server or connection error"))
-            else alert(qsTr("Error: %1").arg(errorMessage + " (" + errorCode + ")"))
+            if (errorCode === 0) showText(qsTr("Server or connection error"))
+            else if (errorCode === 429) showText(qsTr("Rate limit reached, please try again later"))
+            else showText(qsTr("Error: %1").arg(errorMessage + " (" + errorCode + ")"))
         }
     }
 

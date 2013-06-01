@@ -23,19 +23,26 @@
 
 class QClipboard;
 class QDeclarativeItem;
+class QDeclarativeView;
 
 class QMLUtils : public QObject
 {
     Q_OBJECT
 public:
-    explicit QMLUtils(QObject *parent = 0);
+    explicit QMLUtils(QDeclarativeView *view, QObject *parent = 0);
 
     // Copy text to system clipboard
     Q_INVOKABLE void copyToClipboard(const QString &text);
 
     // Save image from QML Image element as local file
     // Return the image path if save successfully or empty string if failed
-    Q_INVOKABLE QString saveImage(QDeclarativeItem *imageObject);
+    Q_INVOKABLE QString saveImage(QDeclarativeItem *imageObject) const;
+
+    // Minimize the app, only on Symbian
+    Q_INVOKABLE void minimizeApp() const;
+
+    // Get network access manager from QDeclarativeEngine
+    Q_INVOKABLE QObject *networkAccessManager() const;
 
     // Return the user agent that use for set as User-Agent header when making network request
     Q_INVOKABLE static QString userAgent();
@@ -43,6 +50,7 @@ public:
 private:
     Q_DISABLE_COPY(QMLUtils)
 
+    QDeclarativeView *m_view;
     QClipboard *clipboard;
 };
 

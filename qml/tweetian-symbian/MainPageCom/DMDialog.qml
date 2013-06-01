@@ -24,7 +24,7 @@ ContextMenu {
     id: root
 
     property string screenName
-    property string tweetId
+    property string id
     property string dmText
 
     property bool __isClosing: false
@@ -39,13 +39,13 @@ ContextMenu {
             onClicked: {
                 // TODO: Remove html for links
                 QMLUtils.copyToClipboard("@" + screenName + ": " + dmText)
-                infoBanner.alert(qsTr("DM copied to clipboard"))
+                infoBanner.showText(qsTr("DM copied to clipboard"))
             }
         }
         MenuItemWithIcon {
             iconSource: platformInverted ? "image://theme/toolbar-delete_inverse" : "image://theme/toolbar-delete"
             text: qsTr("Delete")
-            onClicked: internal.createDeleteDMDialog(tweetId)
+            onClicked: internal.createDeleteDMDialog(id)
         }
         MenuItemWithIcon {
             iconSource: platformInverted ? "../Image/contacts_inverse.svg" : "../Image/contacts.svg"

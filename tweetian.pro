@@ -2,7 +2,7 @@ TEMPLATE = app
 TARGET = tweetian
 
 # Application version
-VERSION = 1.6.1
+VERSION = 1.8.1
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
 win32 {
@@ -28,17 +28,17 @@ maemo5 {
 
 HEADERS += \
     src/qmlutils.h \
-    src/qmluploader.h \
     src/thumbnailcacher.h \
     src/userstream.h \
-    src/networkmonitor.h
+    src/networkmonitor.h \
+    src/imageuploader.h
 
 SOURCES += main.cpp \
     src/qmlutils.cpp \
-    src/qmluploader.cpp \
     src/thumbnailcacher.cpp \
     src/userstream.cpp \
-    src/networkmonitor.cpp
+    src/networkmonitor.cpp \
+    src/imageuploader.cpp
 
 simulator{
     qml_harmattan.source = qml/tweetian-harmattan
@@ -47,7 +47,7 @@ simulator{
     qml_symbian.target = qml
     DEPLOYMENTFOLDERS = qml_harmattan qml_symbian
 
-    RESOURCES += qmlsymbian.qrc qmlharmattan.qrc
+    RESOURCES += qml-harmattan.qrc qml-symbian.qrc
 }
 
 simulator|contains(MEEGO_EDITION,harmattan){
@@ -66,7 +66,7 @@ contains(MEEGO_EDITION,harmattan){
     QT += dbus
     CONFIG += qdeclarative-boostable shareuiinterface-maemo-meegotouch share-ui-plugin share-ui-common mdatauri
     DEFINES += Q_OS_HARMATTAN
-    RESOURCES += qmlharmattan.qrc
+    RESOURCES += qml-harmattan.qrc
 
     HEADERS += src/tweetianif.h
     SOURCES += src/tweetianif.cpp
@@ -100,7 +100,7 @@ symbian{
     DEPLOYMENT += my_deployment
     DEPLOYMENT.display_name = Tweetian
     ICON = Tweetian.svg
-    RESOURCES += qmlsymbian.qrc
+    RESOURCES += qml-symbian.qrc
 
     # Symbian have a different syntax
     DEFINES -= APP_VERSION=\\\"$$VERSION\\\"

@@ -18,9 +18,10 @@
 
 import QtQuick 1.1
 import com.nokia.meego 1.0
+import "../Component"
+import "../Services/Translation.js" as Translation
 
 Page {
-    id: root
 
     Flickable {
         anchors.fill: parent
@@ -30,19 +31,17 @@ Page {
             id: switchColumn
             anchors { left: parent.left; right: parent.right; top: parent.top; topMargin: constant.paddingMedium }
             height: childrenRect.height
-            spacing: constant.paddingMedium
+            spacing: constant.paddingLarge
 
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width - 2 * constant.paddingMedium
+                anchors { left: parent.left; right: parent.right; margins: constant.paddingMedium }
                 font.pixelSize: constant.fontSizeLarge
                 color: constant.colorLight
                 text: qsTr("Theme")
             }
 
             ButtonRow {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width - 2 * constant.paddingMedium
+                anchors { left: parent.left; right: parent.right; margins: constant.paddingMedium }
                 onVisibleChanged: {
                     if (visible) checkedButton = settings.invertedTheme ?  lightThemeButton : darkThemeButton
                 }
@@ -61,16 +60,14 @@ Page {
             }
 
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width - 2 * constant.paddingMedium
+                anchors { left: parent.left; right: parent.right; margins: constant.paddingMedium }
                 font.pixelSize: constant.fontSizeLarge
                 color: constant.colorLight
                 text: qsTr("Font size")
             }
 
             ButtonRow {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width - 2 * constant.paddingMedium
+                anchors { left: parent.left; right: parent.right; margins: constant.paddingMedium }
                 onVisibleChanged: {
                     if (visible) checkedButton = settings.largeFontSize ? largeFontSizeButton : smallFontSizeButton
                 }
@@ -89,18 +86,183 @@ Page {
             }
 
             SettingSwitch {
-                text: qsTr("Include #hashtags in reply")
-                checked: settings.hashtagsInReply
-                onCheckedChanged: settings.hashtagsInReply = checked
-            }
-
-            SettingSwitch {
+                id: enableTwitLongerSwitch
                 text: qsTr("Enable TwitLonger")
                 checked: settings.enableTwitLonger
                 infoButtonVisible: true
                 onInfoClicked: dialog.createMessageDialog(qsTr("About TwitLonger"), infoText.twitLonger)
                 onCheckedChanged: settings.enableTwitLonger = checked
             }
+
+            Item {
+                anchors { left: parent.left; right: parent.right }
+                height: chooseServiceButton.height + 2 * constant.paddingMedium
+
+                Text {
+                    anchors {
+                        left: parent.left; right: chooseServiceButton.left; margins: constant.paddingMedium
+                        verticalCenter: parent.verticalCenter
+                    }
+                    font.pixelSize: constant.fontSizeLarge
+                    color: constant.colorLight
+                    wrapMode: Text.Wrap
+                    elide: Text.ElideLeft
+                    maximumLineCount: 2
+                    text: qsTr("Image upload service")
+                }
+
+                Button {
+                    id: chooseServiceButton
+                    anchors {
+                        right: parent.right; rightMargin: constant.paddingMedium
+                        verticalCenter: parent.verticalCenter
+                    }
+                    width: parent.width * 0.4
+                    text: imageUploadServiceModel.get(settings.imageUploadService).name
+                    onClicked: chooseServiceDialogComponent.createObject(settingPage)
+                }
+            }
+
+            Item {
+                anchors { left: parent.left; right: parent.right }
+                height: chooseLangButton.height + 2 * constant.paddingMedium
+
+                Text {
+                    anchors {
+                        left: parent.left; right: chooseLangButton.left; margins: constant.paddingMedium
+                        verticalCenter: parent.verticalCenter
+                    }
+                    font.pixelSize: constant.fontSizeLarge
+                    color: constant.colorLight
+                    wrapMode: Text.Wrap
+                    elide: Text.ElideLeft
+                    maximumLineCount: 2
+                    text: qsTr("Tweet translation language")
+                }
+
+                Button {
+                    id: chooseLangButton
+                    anchors {
+                        right: parent.right; rightMargin: constant.paddingMedium
+                        verticalCenter: parent.verticalCenter
+                    }
+                    width: parent.width * 0.4
+                    enabled: !loadingRect.visible
+                    text: settings.translateLangName
+                    onClicked: internal.createTranslationLangDialog()
+                }
+            }
         }
+    }
+
+    QtObject {
+        id: internal
+
+        property variant languagesCodesArray
+        property ListModel languageNamesModel: ListModel {}
+
+        function createTranslationLangDialog() {
+            if (!languagesCodesArray || languageNamesModel.count <= 0) __getAvailableLanguages()
+            else translationLangDialog.createObject(settingPage)
+        }
+
+        function __getAvailableLanguages() {
+            if (!cache.isTranslationTokenValid())
+                Translation.requestToken(constant, __getTokenOnSuccess, __onFailure)
+            else
+                Translation.getLanguagesForTranslate(constant, cache.translationToken, __getLangCodesOnSuccess,
+                                                     __onFailure)
+            loadingRect.visible = true
+        }
+
+        function __getTokenOnSuccess(token) {
+            cache.translationToken = token
+            Translation.getLanguagesForTranslate(constant, cache.translationToken, __getLangCodesOnSuccess,
+                                                 __onFailure)
+        }
+
+        function __getLangCodesOnSuccess(langCodesArray) {
+            if (!Array.isArray(langCodesArray)) {
+                infoBanner.showText("Error: " + langCodesArray)
+                loadingRect.visible = false
+                return
+            }
+            languagesCodesArray = langCodesArray
+            Translation.getLanguageNames(constant, cache.translationToken, JSON.stringify(languagesCodesArray),
+                                         __getLangNamesOnSuccess, __onFailure)
+
+        }
+
+        function __getLangNamesOnSuccess(langNamesArray) {
+            if (!Array.isArray(langNamesArray)) {
+                infoBanner.showText("Error: " + langNamesArray)
+                loadingRect.visible = false
+                return
+            }
+            for (var i=0; i<langNamesArray.length; i++) {
+                languageNamesModel.append({ name: langNamesArray[i] })
+            }
+            translationLangDialog.createObject(settingPage)
+            loadingRect.visible = false
+        }
+
+        function __onFailure(status, statusCode) {
+            infoBanner.showHttpError(status, statusCode)
+            loadingRect.visible = false
+        }
+    }
+
+    Component {
+        id: translationLangDialog
+
+        SelectionDialog {
+            id: dialog
+            property bool __isClosing: false
+            titleText: qsTr("Translate to")
+            model: internal.languageNamesModel
+            onAccepted: {
+                settings.translateLangName = internal.languageNamesModel.get(selectedIndex).name
+                settings.translateLangCode = internal.languagesCodesArray[selectedIndex]
+            }
+            Component.onCompleted: {
+                for (var i=0; i<internal.languagesCodesArray.length; i++) {
+                    if (internal.languagesCodesArray[i] === settings.translateLangCode) {
+                        selectedIndex = i
+                        break
+                    }
+                }
+                open()
+            }
+            onStatusChanged: {
+                if (status === DialogStatus.Closing) __isClosing = true
+                else if (status === DialogStatus.Closed && __isClosing) dialog.destroy(250)
+            }
+        }
+    }
+
+    Component {
+        id: chooseServiceDialogComponent
+
+        SelectionDialog {
+            id: chooseServiceDialog
+            property bool __isClosing: false
+            titleText: qsTr("Image Upload Service")
+            model: imageUploadServiceModel
+            selectedIndex: settings.imageUploadService
+            onSelectedIndexChanged: settings.imageUploadService = selectedIndex
+            Component.onCompleted: open()
+            onStatusChanged: {
+                if (status === DialogStatus.Closing) __isClosing = true
+                else if (status === DialogStatus.Closed && __isClosing) chooseServiceDialog.destroy(250)
+            }
+        }
+    }
+
+    ListModel {
+        id: imageUploadServiceModel
+        ListElement { name: "Twitter" }
+        ListElement { name: "TwitPic" }
+        ListElement { name: "MobyPicture" }
+        ListElement { name: "img.ly" }
     }
 }

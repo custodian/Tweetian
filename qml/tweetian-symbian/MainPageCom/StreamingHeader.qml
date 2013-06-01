@@ -26,22 +26,20 @@ Item {
 
     Row {
         id: headerRow
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.top
-        anchors.bottomMargin: constant.paddingXXLarge
+        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.top; bottomMargin: constant.paddingXLarge }
         width: childrenRect.width
         visible: root.ListView.view.__wasAtYBeginning && root.ListView.view.__initialContentY - root.ListView.view.contentY > 10
-        spacing: constant.paddingLarge
+        spacing: constant.paddingMedium
 
         Loader {
             id: iconLoader
-            sourceComponent: userStream.status === 2 ? streamingIcon : pullIcon
+            sourceComponent: userStream.connected ? streamingIcon : pullIcon
         }
 
         Text {
             font.pixelSize: constant.fontSizeMedium
             color: constant.colorLight
-            text: networkMonitor.online ? (userStream.status === 2 ? qsTr("Streaming...") : qsTr("Connecting to streaming"))
+            text: networkMonitor.online ? (userStream.connected ? qsTr("Streaming...") : qsTr("Connecting to streaming"))
                                         : qsTr("Offline")
         }
     }
@@ -51,8 +49,7 @@ Item {
 
         Image {
             sourceSize { width: constant.graphicSizeSmall; height: constant.graphicSizeSmall }
-            source: settings.invertedTheme ? "image://theme/toolbar-refresh_inverse"
-                                           : "image://theme/toolbar-refresh"
+            source:  "image://theme/toolbar-refresh" + (settings.invertedTheme ? "_inverse" : "")
             smooth: true
 
             RotationAnimation on rotation {
@@ -69,9 +66,8 @@ Item {
 
         Image {
             sourceSize { width: constant.graphicSizeSmall; height: constant.graphicSizeSmall }
-            rotation: visible && root.ListView.view.__initialContentY - root.ListView.view.contentY > 100 ? 270 : 90
-            source: settings.invertedTheme ? "image://theme/toolbar-next_inverse"
-                                           : "image://theme/toolbar-next"
+            rotation: root.ListView.view.__toBeRefresh ? 270 : 90
+            source: "image://theme/toolbar-next" + (settings.invertedTheme ? "_inverse" : "")
 
             Behavior on rotation { NumberAnimation { duration: 250 } }
         }

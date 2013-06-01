@@ -18,28 +18,32 @@
 
 import QtQuick 1.1
 import com.nokia.meego 1.0
-import "Services/Twitter.js" as Twitter
 import "Component"
 import "Delegate"
+import "Services/Twitter.js" as Twitter
 
 Page {
-    id: userSearchPage
+    id: browseUsersPage
 
-    property string userSearchQuery
-    property int page: 1
+    property variant userIdsArray
 
-    function userSearchOnSuccess(data) {
-        backButton.enabled = false
-        userSearchParser.sendMessage({"reloadType": "older", "data": data, "model": userSearchListView.model})
-    }
+    property alias headerText: header.headerText
+    property alias headerCount: header.countBubbleValue
+    property alias headerIcon: header.headerIcon
 
-    function userSearchOnFailure(status, statusText) {
-        infoBanner.showHttpError(status, statusText)
-        header.busy = false
-    }
+    Component.onCompleted: {
+        if (userIdsArray.length === 0) {
+            noUserText.visible = true;
+            return;
+        }
 
-    onUserSearchQueryChanged: {
-        Twitter.getUserSearch(userSearchQuery, page, userSearchOnSuccess, userSearchOnFailure)
+        Twitter.getUserLookup(userIdsArray.join(","), function(data) {
+            var obj = { type: "all", data: data, model: usersListView.model }
+            usersParser.sendMessage(obj)
+        }, function(status, statusText) {
+            infoBanner.showHttpError(status, statusText)
+            header.busy = false
+        })
         header.busy = true
     }
 
@@ -52,41 +56,31 @@ Page {
     }
 
     ListView {
-        id: userSearchListView
+        id: usersListView
         anchors { top: header.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
-        footer: LoadMoreButton {
-            visible: userSearchListView.count > 0 && userSearchListView.count % 20 == 0
-            enabled: !header.busy
-            onClicked: {
-                page++
-                Twitter.getUserSearch(userSearchQuery, page, userSearchOnSuccess, userSearchOnFailure)
-                header.busy = true
-            }
-        }
-
         delegate: UserDelegate {}
         model: ListModel {}
     }
 
     Text {
+        id: noUserText
         anchors.centerIn: parent
-        visible: userSearchListView.count == 0 && !header.busy
+        visible: false
         font.pixelSize: constant.fontSizeXXLarge
         color: constant.colorMid
-        text: qsTr("No search result")
+        text: qsTr("No user")
     }
 
-    ScrollDecorator { flickableItem: userSearchListView }
+    ScrollDecorator { flickableItem: usersListView }
 
     PageHeader {
         id: header
-        headerIcon: "image://theme/icon-m-toolbar-search-white-selected"
-        headerText: qsTr("User Search: %1").arg("\"" + userSearchQuery + "\"")
-        onClicked: userSearchListView.positionViewAtBeginning()
+        countBubbleVisible: true
+        onClicked: usersListView.positionViewAtBeginning()
     }
 
     WorkerScript {
-        id: userSearchParser
+        id: usersParser
         source: "WorkerScript/UserParser.js"
         onMessage: {
             backButton.enabled = true

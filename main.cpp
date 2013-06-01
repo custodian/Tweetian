@@ -32,7 +32,7 @@
 #endif
 
 #include "src/qmlutils.h"
-#include "src/qmluploader.h"
+#include "src/imageuploader.h"
 #include "src/thumbnailcacher.h"
 #include "src/userstream.h"
 #include "src/networkmonitor.h"
@@ -99,7 +99,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     bus.registerObject("/com/tweetian", app.data());
 #endif
 
-    QMLUtils qmlUtils;
+    QMLUtils qmlUtils(&view);
     view.rootContext()->setContextProperty("QMLUtils", &qmlUtils);
     ThumbnailCacher thumbnailCacher;
     view.rootContext()->setContextProperty("thumbnailCacher", &thumbnailCacher);
@@ -112,13 +112,12 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     view.rootContext()->setContextProperty("harmattanUtils", &harmattanUtils);
 #endif
 
-    qmlRegisterType<QMLUploader>("Uploader", 1, 0, "ImageUploader");
+    qmlRegisterType<ImageUploader>("Uploader", 1, 0, "ImageUploader");
     qmlRegisterType<UserStream>("UserStream", 1, 0, "UserStream");
 
 #if defined(Q_OS_HARMATTAN)
     view.setSource(QUrl("qrc:/qml/tweetian-harmattan/main.qml"));
 #elif defined(Q_OS_SYMBIAN)
-    view.rootContext()->setContextProperty("appQmlView", &view);
     view.setSource(QUrl("qrc:/qml/tweetian-symbian/main.qml"));
 #else
     view.setSource(QUrl("qrc:/qml/tweetian-harmattan/main.qml"));

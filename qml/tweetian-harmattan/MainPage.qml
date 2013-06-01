@@ -23,6 +23,7 @@ import "Component"
 import "MainPageCom"
 import UserStream 1.0
 import "MainPageCom/UserStream.js" as StreamScript
+import "Utils/Parser.js" as Parser
 
 Page {
     id: mainPage
@@ -83,10 +84,24 @@ Page {
         id: mainView
         objectName: "mainView"
 
+        property int __contentXOffset: 0
+
         function moveToColumn(index) {
-            columnMovingAnimation.to = index * mainView.width
+            columnMovingAnimation.to = (index * width) + __contentXOffset
             columnMovingAnimation.restart()
         }
+
+        anchors { top: mainPageHeader.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+        highlightRangeMode: ListView.StrictlyEnforceRange
+        snapMode: ListView.SnapOneItem
+        orientation: ListView.Horizontal
+        boundsBehavior: Flickable.StopAtBounds
+        model: VisualItemModel {
+            TweetListView { id: timeline; type: "Timeline" }
+            TweetListView { id: mentions; type: "Mentions" }
+            DirectMessage { id: directMsg }
+        }
+        onWidthChanged: __contentXOffset = contentX - (currentIndex * width)
 
         NumberAnimation {
             id: columnMovingAnimation
@@ -95,17 +110,6 @@ Page {
             duration: 500
             easing.type: Easing.InOutExpo
         }
-
-        anchors { top: mainPageHeader.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
-        highlightRangeMode: ListView.StrictlyEnforceRange
-        model: VisualItemModel {
-            TweetListView { id: timeline; type: "Timeline" }
-            TweetListView { id: mentions; type: "Mentions" }
-            DirectMessage { id: directMsg }
-        }
-        snapMode: ListView.SnapOneItem
-        orientation: ListView.Horizontal
-        boundsBehavior: Flickable.StopAtBounds
     }
 
     Connections {
@@ -125,14 +129,20 @@ Page {
         }
     }
 
-    MainPageHeader { id: mainPageHeader }
+    TabPageHeader {
+        id: mainPageHeader
+        listView: mainView
+        iconArray: [Qt.resolvedUrl("Image/home.svg"), Qt.resolvedUrl("Image/mail.svg"),
+            Qt.resolvedUrl("Image/inbox.svg")]
+    }
 
     UserStream {
         id: userStream
+        networkAccessManager: QMLUtils.networkAccessManager()
         onDataRecieved: StreamScript.streamRecieved(rawData)
         onDisconnected: StreamScript.reconnectStream(statusCode, errorText)
         // make sure missed tweets is loaded after connected
-        onStatusChanged: if (status === UserStream.Connected) StreamScript.refreshAll()
+        onConnectedChanged: if (connected) StreamScript.refreshAll()
 
         property bool firstStart: true
 
@@ -153,7 +163,7 @@ Page {
         Timer {
             id: timeOutTimer
             interval: 90000 // 90 seconds as describe in <https://dev.twitter.com/docs/streaming-apis/connecting>
-            running: userStream.status == UserStream.Connected
+            running: userStream.connected
             onTriggered: {
                 reconnectTimer.interval = 5000
                 StreamScript.log("Timeout error, disconnect and reconnect in "+reconnectTimer.interval/1000+"s")
