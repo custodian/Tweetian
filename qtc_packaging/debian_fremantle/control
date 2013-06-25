@@ -8,7 +8,7 @@ Homepage: <insert the upstream URL, if relevant>
 
 Package: tweetian
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, mcsp, libqtm-12, qt-components-10-com.meego-compat
+Depends: ${shlibs:Depends}, ${misc:Depends}, mcsp, libqtm-12, qt-components-10-com.meego-compat, qt-components-10-com.nokia.meego-1.1-compat
 Description: A feature-rich Twitter app powered by Qt
     Tweetian is a feature-rich Twitter app for smartphones, powered by Qt and QML. It has a simple, native and easy-to-use UI that will surely make you enjoy the Twitter experience on your smartphone. Tweetian is open source and licensed under GPL v3.
 XB-Maemo-Display-Name: tweetian

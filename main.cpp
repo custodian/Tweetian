@@ -37,7 +37,7 @@
 #include "src/userstream.h"
 #include "src/networkmonitor.h"
 
-#if defined(Q_OS_HARMATTAN) || defined(Q_WS_SIMULATOR)
+#if defined(Q_OS_HARMATTAN) || defined(Q_WS_SIMULATOR) || defined(Q_OS_MAEMO)
 #include "src/harmattanutils.h"
 #endif
 
@@ -107,7 +107,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     view.rootContext()->setContextProperty("networkMonitor", &networkMonitor);
     view.rootContext()->setContextProperty("APP_VERSION", APP_VERSION);
 
-#if defined(Q_OS_HARMATTAN) || defined(Q_WS_SIMULATOR)
+#if defined(Q_OS_HARMATTAN) || defined(Q_WS_SIMULATOR) || defined(Q_OS_MAEMO)
     HarmattanUtils harmattanUtils;
     view.rootContext()->setContextProperty("harmattanUtils", &harmattanUtils);
 #endif

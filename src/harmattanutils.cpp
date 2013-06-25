@@ -19,23 +19,28 @@
 #include "harmattanutils.h"
 
 #include <QtCore/QTimer>
-
+#include <QDebug>
 #ifdef Q_OS_HARMATTAN
 #include <MDataUri>
 #include <maemo-meegotouch-interfaces/shareuiinterface.h>
 #include <MNotification>
 #include <MRemoteAction>
+#endif
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusConnectionInterface>
 #include <QtDBus/QDBusReply>
-#endif
+
 
 namespace {
 #ifdef Q_OS_HARMATTAN
     const QString SHARE_UI_SERVICE = "com.nokia.ShareUi";
     const QString MUSIC_SUITE_SERVICE = "com.nokia.music-suite";
     const QString MUSIC_SUITE_INTERFACE = "com.nokia.maemo.meegotouch.MusicSuiteInterface";
+#elif Q_OS_MAEMO
+    const QString MUSIC_SUITE_SERVICE = "com.nokia.mafw.renderer.Mafw-Gst-Renderer-Plugin.gstrenderer";
+    const QString MUSIC_SUITE_PATH = "/com/nokia/mafw/renderer/gstrenderer";
+    const QString MUSIC_SUITE_INTERFACE = "com.nokia.mafw.renderer";
 #endif
 
     const int NOTIFICATION_COLDDOWN_INVERVAL = 5000;
@@ -82,10 +87,10 @@ void HarmattanUtils::shareLink(const QString &url, const QString &title)
 void HarmattanUtils::publishNotification(const QString &eventType, const QString &summary, const QString &body,
                                          const int count)
 {
+#ifdef Q_OS_HARMATTAN
     if (eventType == "tweetian.mention" ? mentionColddown->isActive() : messageColddown->isActive())
         return;
 
-#ifdef Q_OS_HARMATTAN
     QString identifier = eventType.mid(9);
 
     MNotification notification(eventType, summary, body);
@@ -94,15 +99,15 @@ void HarmattanUtils::publishNotification(const QString &eventType, const QString
     MRemoteAction action("com.tweetian", "/com/tweetian", "com.tweetian", identifier);
     notification.setAction(action);
     notification.publish();
+
+    if (eventType == "tweetian.mention") mentionColddown->start();
+    else messageColddown->start();
 #else
     Q_UNUSED(eventType)
     Q_UNUSED(summary)
     Q_UNUSED(body)
     Q_UNUSED(count)
 #endif
-
-    if (eventType == "tweetian.mention") mentionColddown->start();
-    else messageColddown->start();
 }
 
 void HarmattanUtils::clearNotification(const QString &eventType)
@@ -135,6 +140,49 @@ void HarmattanUtils::getNowPlayingMedia()
 
     QDBusInterface musicInterface(MUSIC_SUITE_SERVICE, "/", MUSIC_SUITE_INTERFACE);
     musicInterface.call("currentMedia");
+#elif Q_OS_MAEMO
+    QString np("");
+    QDBusMessage m = QDBusMessage::createMethodCall(MUSIC_SUITE_SERVICE,
+                                                  MUSIC_SUITE_PATH,
+                                                  MUSIC_SUITE_INTERFACE,
+                                                  "get_current_metadata");
+    QDBusMessage message = QDBusConnection::sessionBus().call(m);
+    //qDebug() << "Message:" << message;
+    QList<QVariant> reply = message.arguments();
+    //qDebug() << "Reply:" << reply;
+
+    if (!reply.isEmpty()) {
+        QString type         = reply.at(0).toString();
+        QByteArray byteArray = reply.at(1).toByteArray();
+
+        byteArray = byteArray.replace(NULL, 1);
+        byteArray = byteArray.replace(244, 1);
+        byteArray = byteArray.replace(226, 1);
+        byteArray = byteArray.replace(64, 1);
+        byteArray = byteArray.replace(20, 1);
+        byteArray = byteArray.replace(24, 1);
+        byteArray = byteArray.replace(4, 1);
+
+        QString metadata(byteArray.replace(2, 1));
+        metadata = metadata.replace(QRegExp("\x1+"), "<split>");
+        //qDebug() << "Metadata:" << metadata;
+        QStringList metadataList = metadata.split("<split>");
+
+        if (type.indexOf("localtagfs") != -1) {
+            if (metadataList.indexOf("artist") != -1) {
+                np = metadataList.at(metadataList.indexOf("artist") + 1);
+            }
+            if ( metadataList.indexOf("title") != -1){
+                if (np.length())
+                    np += " - ";
+                np += metadataList.at(metadataList.indexOf("title") + 1);
+            }
+        }
+    }
+    //qDebug() << "NowPlaying:" << np;
+    if (np.length())
+        np = "#NowPlaying " + np;
+    emit mediaReceived(np);
 #else
     emit mediaReceived("");
 #endif
