@@ -1,3 +1,9 @@
+tweetian (1.8.2-maemo1) stable; urgency=normal
+  * Minor bugs fix and improvements
+  * Update translations
+
+ -- Basil Semuonov <basil.semuonov@gmail.com>  Tue, 10 Sep 2013 23:07:09 +0400
+
 tweetian (1.8.1-maemo1) stable; urgency=normal
   * NowPlaying support
 
