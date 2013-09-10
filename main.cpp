@@ -41,6 +41,10 @@
 #include "src/harmattanutils.h"
 #endif
 
+#if defined(Q_OS_SYMBIAN) || defined(Q_WS_SIMULATOR)
+#include "src/symbianutils.h"
+#endif
+
 #ifdef Q_OS_HARMATTAN
 #include <QtDBus/QDBusConnection>
 #include "src/tweetianif.h"
@@ -110,6 +114,11 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 #if defined(Q_OS_HARMATTAN) || defined(Q_WS_SIMULATOR) || defined(Q_OS_MAEMO)
     HarmattanUtils harmattanUtils;
     view.rootContext()->setContextProperty("harmattanUtils", &harmattanUtils);
+#endif
+
+#if defined(Q_OS_SYMBIAN) || defined(Q_WS_SIMULATOR)
+    SymbianUtils symbianUtils(&view);
+    view.rootContext()->setContextProperty("symbianUtils", &symbianUtils);
 #endif
 
     qmlRegisterType<ImageUploader>("Uploader", 1, 0, "ImageUploader");
