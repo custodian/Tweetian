@@ -16,39 +16,31 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef QMLUTILS_H
-#define QMLUTILS_H
+#ifndef SYMBIANUTILS_H
+#define SYMBIANUTILS_H
 
 #include <QtCore/QObject>
 
-class QClipboard;
-class QDeclarativeItem;
 class QDeclarativeView;
+class QUrl;
 
-class QMLUtils : public QObject
+class SymbianUtils : public QObject
 {
     Q_OBJECT
 public:
-    explicit QMLUtils(QDeclarativeView *view, QObject *parent = 0);
+    explicit SymbianUtils(QDeclarativeView *view, QObject *parent = 0);
 
-    // Copy text to system clipboard
-    Q_INVOKABLE void copyToClipboard(const QString &text);
+    // Minimize the app
+    Q_INVOKABLE void minimizeApp() const;
 
-    // Save image from QML Image element as local file
-    // Return the image path if save successfully or empty string if failed
-    Q_INVOKABLE QString saveImage(QDeclarativeItem *imageObject) const;
+    // Show a global notification
+    Q_INVOKABLE void showNotification(const QString &title, const QString &message) const;
 
-    // Get network access manager from QDeclarativeEngine
-    Q_INVOKABLE QObject *networkAccessManager() const;
-
-    // Return the user agent that use for set as User-Agent header when making network request
-    Q_INVOKABLE static QString userAgent();
+    // Open url with the default browser
+    Q_INVOKABLE void openDefaultBrowser(const QUrl &url) const;
 
 private:
-    Q_DISABLE_COPY(QMLUtils)
-
     QDeclarativeView *m_view;
-    QClipboard *clipboard;
 };
 
-#endif // QMLUTILS_H
+#endif // SYMBIANUTILS_H
