@@ -1,3 +1,8 @@
+tweetian (1.8.3-maemo0) stable; urgency=normal
+  * Fix user info page
+
+ -- Basil Semuonov <basil.semuonov@gmail.com>  Sat, 18 Jan 2014 20:43:47 +0400
+
 tweetian (1.8.2-maemo1) stable; urgency=normal
   * Minor bugs fix and improvements
   * Update translations
