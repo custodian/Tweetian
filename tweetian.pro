@@ -2,7 +2,7 @@ TEMPLATE = app
 TARGET = tweetian
 
 # Application version
-VERSION = 1.8.2
+VERSION = 1.8.3
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
 win32 {
@@ -86,7 +86,8 @@ maemo5 {
 }
 
 symbian{
-    TARGET.UID3 = 0x2005e90a
+    TARGET = tweetian_0xA00158E5
+    TARGET.UID3 = 0xA00158E5
     TARGET.CAPABILITY += NetworkServices Location LocalServices ReadUserData WriteUserData
     TARGET.EPOCHEAPSIZE = 0x40000 0x4000000
 
