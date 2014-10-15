@@ -1,3 +1,8 @@
+tweetian (1.8.3-maemo1) stable; urgency=normal
+  * Fix for POODLE. SSLv3 disabled.
+
+ -- Basil Semuonov <basil.semuonov@gmail.com>  Thu, 16 Oct 2014 00:07:14 +0400
+
 tweetian (1.8.3-maemo0) stable; urgency=normal
   * Fix user info page
 

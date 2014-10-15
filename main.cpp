@@ -50,9 +50,18 @@
 #include "src/tweetianif.h"
 #endif
 
+#include <QSsl>
+#include <QSslConfiguration>
+
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
     QScopedPointer<QApplication> app(createApplication(argc, argv));
+
+#if defined(Q_OS_MAEMO)
+    QSslConfiguration config = QSslConfiguration::defaultConfiguration();
+    config.setProtocol(QSsl::TlsV1);
+    QSslConfiguration::setDefaultConfiguration(config);
+#endif
 
     QString lang = QLocale::system().name();
     lang.truncate(2); // ignore the country code
